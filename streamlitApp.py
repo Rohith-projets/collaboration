@@ -42,6 +42,14 @@ class Collaboration:
                                 st.write(f"**{value['key']}**")
                                 st.text(value['description'])
                                 st.dataframe(pd.DataFrame(value['data']))
+                         # Display Comments
+                        st.markdown("### Comments")
+                        comments = team_info.get("comments", {})
+                        if comments:
+                            for member, comments_list in comments.items():
+                                st.write(f"**{member}:**")
+                                for cmnt in comments_list:
+                                    st.text(f"- {cmnt}")
             else:
                 col1.warning("No data found for this email.")
 
@@ -93,15 +101,6 @@ class Collaboration:
                                 st.success("Comment added successfully!")
                             else:
                                 st.warning("Please enter a valid comment.")
-
-                        # Display Comments
-                        st.markdown("### Comments")
-                        comments = team_info.get("comments", {})
-                        if comments:
-                            for member, comments_list in comments.items():
-                                st.write(f"**{member}:**")
-                                for cmnt in comments_list:
-                                    st.text(f"- {cmnt}")
                         else:
                             st.text("No comments available.")
 
