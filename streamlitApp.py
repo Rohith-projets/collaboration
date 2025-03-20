@@ -35,7 +35,8 @@ class Collaboration:
                     team_index = int(selected_team.split()[1]) - 1
                     with col2:
                         team_info = sent_data[team_index]
-                        st.subheader(f"Data for {selected_team}")
+                        st.subheader(f"Data for {selected_team}",divider='blue')
+                        st.text(f"Team members : {team_info['team members']}")
 
                         for key, value in team_info.items():
                             if key.startswith("data_"):
