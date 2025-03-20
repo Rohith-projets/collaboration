@@ -36,10 +36,10 @@ class Collaboration:
                     with col2:
                         team_info = sent_data[team_index]
                         st.subheader(f"Data for {selected_team}")
-
+                        st.text(f"Team members : {team_info['team members']}")
                         for key, value in team_info.items():
                             if key.startswith("data_"):
-                                st.write(f"**{value['key']}**")
+                                st.subheader(value['key'],divider='blue')
                                 st.text(value['description'])
                                 st.dataframe(pd.DataFrame(value['data']))
             else:
