@@ -39,7 +39,7 @@ class Collaboration:
 
                         for key, value in team_info.items():
                             if key.startswith("data_"):
-                                st.write(f"**{value['key']}**")
+                                st.subheader(value['key'],divider='blue')
                                 st.text(value['description'])
                                 st.dataframe(pd.DataFrame(value['data']))
                          # Display Comments
@@ -79,7 +79,7 @@ class Collaboration:
 
                         for key, value in team_info.items():
                             if key.startswith("data_"):
-                                st.write(f"**{value['key']}**")
+                                st.subheader(value['key'],divider='blue')
                                 st.text(value['description'])
                                 st.dataframe(pd.DataFrame(value['data']))
 
