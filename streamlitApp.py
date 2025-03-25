@@ -11,13 +11,15 @@ class ViewCollaborations:
         self.initialize_session()
         
     def initialize_session(self):
+        if 'db_connected' not in st.session_state:
+            st.session_state.db_connected = False
         if 'db' not in st.session_state:
             st.session_state.db = None
     
     def show_interface(self):
         self._show_sidebar()
         
-        if st.session_state.db is not None:
+        if st.session_state.db_connected and st.session_state.db is not None:
             tab1, tab2 = st.tabs(["View Data", "Make Complaint"])
             with tab1:
                 self._show_view_data_tab()
@@ -56,11 +58,13 @@ class ViewCollaborations:
                 st.error("Wrong password entered - contact administrator")
                 return
                 
-            st.session_state.db = db  # Store db in session state
+            st.session_state.db = db
+            st.session_state.db_connected = True
             st.success("Connected to database successfully")
             
         except Exception as e:
             st.error(f"Connection failed: {str(e)}")
+            st.session_state.db_connected = False
             st.session_state.db = None
     
     def _show_view_data_tab(self):
@@ -68,8 +72,12 @@ class ViewCollaborations:
         
         with col1:
             try:
+                if st.session_state.db is None:
+                    st.error("Database connection lost")
+                    return
+                    
                 collections = [col for col in st.session_state.db.list_collection_names() 
-                              if col != 'Authenticator']
+                             if col != 'Authenticator']
                 if not collections:
                     st.warning("No collections available")
                     return
@@ -89,6 +97,10 @@ class ViewCollaborations:
     
     def _show_selected_document(self, collection_name):
         try:
+            if st.session_state.db is None:
+                st.error("Database connection lost")
+                return
+                
             docs = list(st.session_state.db[collection_name].find({}, {'key': 1}))
             if not docs:
                 st.warning("No documents found")
@@ -110,6 +122,10 @@ class ViewCollaborations:
     
     def _show_all_documents(self, collection_name):
         try:
+            if st.session_state.db is None:
+                st.error("Database connection lost")
+                return
+                
             docs = list(st.session_state.db[collection_name].find())
             if not docs:
                 st.warning("No documents found")
@@ -134,6 +150,10 @@ class ViewCollaborations:
         
         with col1:
             try:
+                if st.session_state.db is None:
+                    st.error("Database connection lost")
+                    return
+                    
                 collections = [col for col in st.session_state.db.list_collection_names() 
                              if col != 'Authenticator']
                 if not collections:
@@ -156,21 +176,28 @@ class ViewCollaborations:
                 return
         
         with col2:
+            emp_id = st.text_input("Employee ID")  # Added empID field
             name = st.text_input("Your Name")
             complaint_text = st.text_area("Complaint Details")
             
             if st.button("Submit Complaint"):
-                if not name or not complaint_text:
-                    st.error("Please fill all fields")
+                if not emp_id or not name or not complaint_text:
+                    st.error("Please fill all fields including Employee ID")
                     return
                     
                 try:
+                    if st.session_state.db is None:
+                        st.error("Database connection lost")
+                        return
+                        
                     complaint = {
                         'id_number': f"comp_{pd.Timestamp.now().value}",
+                        'emp_id': emp_id,  # Include empID in complaint
                         'name': name,
                         'collection': selected_collection,
                         'complaint_on': selected_key,
-                        'complaint': complaint_text
+                        'complaint': complaint_text,
+                        'status': 'Open'  # Added default status
                     }
                     
                     if 'complaints' not in st.session_state.db.list_collection_names():
