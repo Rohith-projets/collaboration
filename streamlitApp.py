@@ -8,17 +8,16 @@ import base64
 class ViewCollaborations:
     def __init__(self):
         self.client = None
-        self.db = None
         self.initialize_session()
         
     def initialize_session(self):
-        if 'db_connected' not in st.session_state:
-            st.session_state.db_connected = False
+        if 'db' not in st.session_state:
+            st.session_state.db = None
     
     def show_interface(self):
         self._show_sidebar()
         
-        if st.session_state.db_connected:
+        if st.session_state.db is not None:
             tab1, tab2 = st.tabs(["View Data", "Make Complaint"])
             with tab1:
                 self._show_view_data_tab()
@@ -49,27 +48,28 @@ class ViewCollaborations:
                 st.error(f"No database exists with name: {db_name}")
                 return
                 
-            self.db = self.client[db_name]
-            auth_collection = self.db['Authenticator']
+            db = self.client[db_name]
+            auth_collection = db['Authenticator']
             auth_doc = auth_collection.find_one()
             
             if not auth_doc or auth_doc.get('password') != password:
                 st.error("Wrong password entered - contact administrator")
                 return
                 
-            st.session_state.db_connected = True
+            st.session_state.db = db  # Store db in session state
             st.success("Connected to database successfully")
             
         except Exception as e:
             st.error(f"Connection failed: {str(e)}")
-            st.session_state.db_connected = False
+            st.session_state.db = None
     
     def _show_view_data_tab(self):
         col1, col2 = st.columns([1, 2])
         
         with col1:
             try:
-                collections = [col for col in self.db.list_collection_names() if col != 'Authenticator']
+                collections = [col for col in st.session_state.db.list_collection_names() 
+                              if col != 'Authenticator']
                 if not collections:
                     st.warning("No collections available")
                     return
@@ -89,13 +89,13 @@ class ViewCollaborations:
     
     def _show_selected_document(self, collection_name):
         try:
-            docs = list(self.db[collection_name].find({}, {'key': 1}))
+            docs = list(st.session_state.db[collection_name].find({}, {'key': 1}))
             if not docs:
                 st.warning("No documents found")
                 return
                 
             selected_key = st.selectbox("Select Key", [doc['key'] for doc in docs])
-            doc = self.db[collection_name].find_one({'key': selected_key})
+            doc = st.session_state.db[collection_name].find_one({'key': selected_key})
             
             st.write(f"**Key:** {doc.get('key', 'N/A')}")
             st.write(f"**Description:** {doc.get('description', 'None')}")
@@ -110,7 +110,7 @@ class ViewCollaborations:
     
     def _show_all_documents(self, collection_name):
         try:
-            docs = list(self.db[collection_name].find())
+            docs = list(st.session_state.db[collection_name].find())
             if not docs:
                 st.warning("No documents found")
                 return
@@ -134,19 +134,22 @@ class ViewCollaborations:
         
         with col1:
             try:
-                collections = [col for col in self.db.list_collection_names() if col != 'Authenticator']
+                collections = [col for col in st.session_state.db.list_collection_names() 
+                             if col != 'Authenticator']
                 if not collections:
                     st.warning("No collections available")
                     return
                     
-                selected_collection = st.selectbox("Select Collection", collections, key="complaint_collection")
-                docs = list(self.db[selected_collection].find({}, {'key': 1}))
+                selected_collection = st.selectbox("Select Collection", collections, 
+                                                 key="complaint_collection")
+                docs = list(st.session_state.db[selected_collection].find({}, {'key': 1}))
                 
                 if not docs:
                     st.warning("No documents in collection")
                     return
                     
-                selected_key = st.selectbox("Select Document", [doc['key'] for doc in docs], key="complaint_doc")
+                selected_key = st.selectbox("Select Document", [doc['key'] for doc in docs], 
+                                          key="complaint_doc")
             
             except Exception as e:
                 st.error(f"Error preparing complaint form: {str(e)}")
@@ -170,10 +173,10 @@ class ViewCollaborations:
                         'complaint': complaint_text
                     }
                     
-                    if 'complaints' not in self.db.list_collection_names():
-                        self.db.create_collection('complaints')
+                    if 'complaints' not in st.session_state.db.list_collection_names():
+                        st.session_state.db.create_collection('complaints')
                     
-                    self.db['complaints'].insert_one(complaint)
+                    st.session_state.db['complaints'].insert_one(complaint)
                     st.success("Complaint submitted successfully")
                     
                 except Exception as e:
