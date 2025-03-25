@@ -12,15 +12,15 @@ class ViewCollaborations:
         self.initialize_session()
         
     def initialize_session(self):
-        if 'database' not in st.session_state:
-            st.session_state.database = None
+        if 'db_connected' not in st.session_state:
+            st.session_state.db_connected = False
         if 'allData' not in st.session_state:
             st.session_state.allData = {'sample': pd.DataFrame()}
     
     def show_interface(self):
         self._show_sidebar()
         
-        if st.session_state.database:
+        if st.session_state.db_connected:
             tab1, tab2 = st.tabs(["View Data", "Make Complaint"])
             with tab1:
                 self._show_view_data_tab()
@@ -64,11 +64,13 @@ class ViewCollaborations:
                 st.error("Wrong password entered - contact administrator")
                 return
                 
-            st.session_state.database = db
+            self.db = db
+            st.session_state.db_connected = True
             st.success("Connected to database successfully")
             
         except Exception as e:
             st.error(f"Connection failed: {str(e)}")
+            st.session_state.db_connected = False
     
     def _show_view_data_tab(self):
         col1, col2 = st.columns([1, 2], border=True)
@@ -176,10 +178,10 @@ class ViewCollaborations:
                     'complaint': complaint_text
                 }
                 
-                if 'complaints' not in st.session_state.database.list_collection_names():
-                    st.session_state.database.create_collection('complaints')
+                if 'complaints' not in self.db.list_collection_names():
+                    self.db.create_collection('complaints')
                 
-                st.session_state.database['complaints'].insert_one(complaint)
+                self.db['complaints'].insert_one(complaint)
                 st.success("Complaint submitted successfully")
             except Exception as e:
                 st.error(f"Failed to submit complaint: {str(e)}")
@@ -199,31 +201,31 @@ class ViewCollaborations:
             st.write(f"**Format:** {doc.get('image_format', 'Unknown')}")
     
     def _get_collections(self) -> list:
-        if not st.session_state.database:
+        if not st.session_state.db_connected:
             return []
             
         collections = [
-            col for col in st.session_state.database.list_collection_names() 
+            col for col in self.db.list_collection_names() 
             if col != 'Authenticator'
         ]
         return collections
     
     def _get_documents(self, collection_name: str) -> list:
-        if not st.session_state.database:
+        if not st.session_state.db_connected:
             return []
             
         try:
-            return list(st.session_state.database[collection_name].find({}, {'key': 1}))
+            return list(self.db[collection_name].find({}, {'key': 1}))
         except Exception as e:
             st.error(f"Error fetching documents: {str(e)}")
             return []
     
     def _get_document(self, collection_name: str, key: str) -> dict:
-        if not st.session_state.database:
+        if not st.session_state.db_connected:
             return {}
             
         try:
-            return st.session_state.database[collection_name].find_one({'key': key})
+            return self.db[collection_name].find_one({'key': key})
         except Exception as e:
             st.error(f"Error fetching document: {str(e)}")
             return {}
